@@ -1,4 +1,4 @@
-# Preditor Analítico do Brasileirão
+# Simulador Analítico do Brasileirão
 
 ##  Visão Geral
 Este projeto é um sistema Full-Stack orientado a dados projetado para coletar, armazenar e processar históricos do Campeonato Brasileiro, fornecendo simulações estatísticas de probabilidade de vitória em confrontos diretos. O objetivo central é demonstrar o ciclo de vida completo do dado: desde a extração automatizada na web (ETL) até a entrega de valor visual e interativa para o usuário final.
