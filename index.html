@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Robô Analítico - Brasileirão</title>
+
+    <!-- Importando uma fonte moderna do Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* Estilos CSS (Base) */
+      body {
+        font-family: "Inter", sans-serif;
+        text-align: center;
+        background-color: #f0f2f5;
+        margin: 0;
+        padding: 50px 20px;
+        color: #333;
+      }
+
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        max-width: 500px;
+        margin: 0 auto;
+        box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.08);
+      }
+
+      h2 {
+        margin-top: 0;
+        color: #1a1a1a;
+        font-weight: 800;
+      }
+      h3 {
+        margin-top: 40px;
+        color: #1a1a1a;
+        font-weight: 800;
+        border-top: 1px solid #eee;
+        padding-top: 30px;
+      }
+      p {
+        color: #666;
+        font-size: 0.95em;
+        margin-bottom: 30px;
+      }
+
+      /* Seletores do Simulador */
+      .seletores {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      select {
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        font-size: 15px;
+        font-family: inherit;
+        flex: 1;
+        outline: none;
+        cursor: pointer;
+        background-color: #f8f9fa;
+      }
+
+      select:focus {
+        border-color: #0056b3;
+        box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1);
+      }
+
+      span.vs {
+        font-weight: 800;
+        color: #adb5bd;
+      }
+
+      /* Botões e Barras */
+      button {
+        width: 100%;
+        padding: 15px;
+        background: #0d6efd;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 16px;
+        transition: background 0.2s ease-in-out;
+      }
+
+      button:hover {
+        background: #0b5ed7;
+      }
+      #resultado {
+        margin-top: 30px;
+      }
+
+      .barra-resultado {
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Cores dinâmicas para indicar vantagem no confronto */
+      .vencedor-bg {
+        background-color: #198754;
+      } /* Verde - Maior Probabilidade */
+      .perdedor-bg {
+        background-color: #dc3545;
+      } /* Vermelho - Menor Probabilidade */
+      .empate-bg {
+        background-color: #6c757d;
+      } /* Cinza - Probabilidades Iguais */
+
+      .mensagem-erro {
+        color: #dc3545;
+        font-weight: 600;
+        background: #f8d7da;
+        padding: 15px;
+        border-radius: 8px;
+      }
+
+      /* Estilos da Tabela do Top 10 */
+      .tabela-top10 {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+
+      .tabela-top10 th,
+      .tabela-top10 td {
+        padding: 12px 8px;
+        border-bottom: 1px solid #f0f2f5;
+        text-align: center;
+      }
+
+      .tabela-top10 th:nth-child(2),
+      .tabela-top10 td:nth-child(2) {
+        text-align: left;
+      }
+      .tabela-top10 th {
+        color: #666;
+        font-weight: 600;
+      }
+
+      .tabela-top10 tr:nth-child(1) td {
+        font-weight: 800;
+        color: #daca40;
+      }
+      .tabela-top10 tr:nth-child(2) td {
+        font-weight: 700;
+        color: #b9b8b8;
+      }
+      .tabela-top10 tr:nth-child(3) td {
+        font-weight: 700;
+        color: #a0522d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Simulador de Confrontos</h2>
+      <p>Inteligência de dados baseada no histórico da Série A (2020-2025)</p>
+
+      <div class="seletores">
+        <select id="timeA">
+          <option value="">Carregando...</option>
+        </select>
+        <span class="vs">X</span>
+        <select id="timeB">
+          <option value="">Carregando...</option>
+        </select>
+      </div>
+
+      <button onclick="simular()">Calcular Probabilidades</button>
+
+      <div id="resultado"></div>
+
+      <h3>🏆 Top 10 Times Mais Letais</h3>
+      <div id="area-top10">
+        <p style="color: #666">Carregando ranking...</p>
+      </div>
+    </div>
+
+    <script>
+      /**
+       * Ao carregar a página, executa as requisições para preencher os menus
+       * e construir a tabela do Top 10 automaticamente.
+       */
+      document.addEventListener("DOMContentLoaded", function () {
+        // --- REQUISIÇÃO 1: Popular os selects ---
+        fetch("http://127.0.0.1:5000/api/times")
+          .then((resposta) => resposta.json())
+          .then((times) => {
+            const selectA = document.getElementById("timeA");
+            const selectB = document.getElementById("timeB");
+
+            selectA.innerHTML = '<option value="">Escolha o Mandante</option>';
+            selectB.innerHTML = '<option value="">Escolha o Visitante</option>';
+
+            times.forEach((time) => {
+              selectA.innerHTML += `<option value="${time}">${time}</option>`;
+              selectB.innerHTML += `<option value="${time}">${time}</option>`;
+            });
+          })
+          .catch((erro) => {
+            document.getElementById("resultado").innerHTML = `
+              <div class="mensagem-erro">⚠️ Erro: Conecte a API Flask (app.py) no terminal.</div>`;
+          });
+
+        // --- REQUISIÇÃO 2: Montar a tabela Top 10 ---
+        fetch("http://127.0.0.1:5000/api/top10")
+          .then((resposta) => resposta.json())
+          .then((dados) => {
+            const areaTop10 = document.getElementById("area-top10");
+
+            let tabelaHTML = `
+              <table class="tabela-top10">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Time</th>
+                    <th>Jogos</th>
+                    <th>Vitórias</th>
+                  </tr>
+                </thead>
+                <tbody>
+            `;
+
+            dados.forEach((time, index) => {
+              tabelaHTML += `
+                <tr>
+                  <td>${index + 1}º</td>
+                  <td>${time.nome}</td>
+                  <td>${time.total_jogos}</td>
+                  <td>${time["chance_vitoria_%"]}%</td>
+                </tr>
+              `;
+            });
+
+            tabelaHTML += `</tbody></table>`;
+            areaTop10.innerHTML = tabelaHTML;
+          })
+          .catch((erro) => {
+            document.getElementById("area-top10").innerHTML = `
+              <p style="color: #dc3545;">Erro ao carregar o ranking.</p>`;
+          });
+      });
+
+      /**
+       * Função de Simulação
+       * Valida os times escolhidos, busca na API e aplica as cores
+       * dinâmicas de vitória ou derrota.
+       */
+      function simular() {
+        const timeA = document.getElementById("timeA").value;
+        const timeB = document.getElementById("timeB").value;
+        const divResultado = document.getElementById("resultado");
+
+        if (timeA === "" || timeB === "") {
+          divResultado.innerHTML = `<div class="mensagem-erro">⚠️ Selecione os dois times para calcular!</div>`;
+          return;
+        }
+
+        if (timeA === timeB) {
+          divResultado.innerHTML = `<div class="mensagem-erro">⚠️ O time não pode jogar contra ele mesmo!</div>`;
+          return;
+        }
+
+        divResultado.innerHTML =
+          "<p style='color: #666;'>Cruzando dados do banco...</p>";
+        const url = `http://127.0.0.1:5000/api/simular?time_a=${timeA}&time_b=${timeB}`;
+
+        fetch(url)
+          .then((resposta) => resposta.json())
+          .then((dados) => {
+            if (dados.erro) {
+              divResultado.innerHTML = `<div class="mensagem-erro">❌ ${dados.erro}</div>`;
+            } else {
+              // Lógica de decisão de cores (Verde, Vermelho ou Cinza)
+              let classeTimeA = "empate-bg";
+              let classeTimeB = "empate-bg";
+
+              // Se o Time A for maior, ele é o vencedor
+              if (
+                dados.time_a.probabilidade_vitoria >
+                dados.time_b.probabilidade_vitoria
+              ) {
+                classeTimeA = "vencedor-bg";
+                classeTimeB = "perdedor-bg";
+              }
+              // Se o Time B for maior, ele é o vencedor
+              else if (
+                dados.time_b.probabilidade_vitoria >
+                dados.time_a.probabilidade_vitoria
+              ) {
+                classeTimeA = "perdedor-bg";
+                classeTimeB = "vencedor-bg";
+              }
+
+              // Desenhamos a tela injetando as variáveis "classeTimeA" e "classeTimeB" que calculamos acima
+              divResultado.innerHTML = `
+                <p style="text-align: left; font-weight: 600; color: #495057; margin-bottom: 10px;">Chances de Vitória:</p>
+                <div class="barra-resultado ${classeTimeA}">
+                    <span>${dados.time_a.nome}</span>
+                    <span>${dados.time_a.probabilidade_vitoria}%</span>
+                </div>
+                <div class="barra-resultado ${classeTimeB}">
+                    <span>${dados.time_b.nome}</span>
+                    <span>${dados.time_b.probabilidade_vitoria}%</span>
+                </div>
+              `;
+            }
+          })
+          .catch((erro) => {
+            divResultado.innerHTML = `<div class="mensagem-erro">⚠️ Erro na conexão com o servidor.</div>`;
+          });
+      }
+    </script>
+  </body>
+</html>
